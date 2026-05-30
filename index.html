@@ -129,7 +129,7 @@
       <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
         <div class="p-4 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3">
           <div class="flex items-center gap-2">
-            <h3 class="font-bold text-gray-800 text-base">📋 Subscriber List</h3>
+            <h3 class="font-bold text-gray-800 text-base">📋 Subscriber စောင့်ကြည့်ဘုတ်</h3>
             <button onclick="clearTableFilters()" id="btnClearFilter" class="hidden text-xs bg-red-100 text-red-700 px-2 py-1 rounded-lg font-bold hover:bg-red-200 transition cursor-pointer">❌ Reset Filter</button>
           </div>
           <input type="text" id="searchBox" oninput="renderSubscribers()" placeholder="အမည်၊ ဖုန်း သို့မဟုတ် Plan ဖြင့်ရှာရန်..." class="w-full sm:w-64 p-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -266,8 +266,8 @@
   </div>
 
   <script>
-    // --- BACKEND API GOOGLE WEB APP GATEWAY CONFIG ---
-    const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyVIZVEusPeF_uL9EKKj4fla_x05OFmfEcR1QfhEuFdXwftv88oRFgoWjN3SntlD_Pm/exec";
+    // --- ⚠️ အရေးကြီးဆုံးနေရာ - အောက်ပါ "" ထဲတွင် ဆရာ့ရဲ့ WEB APP URL အသစ်ကို အစားထိုးထည့်သွင်းပါ ---
+    const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbz6IjADu3u3rAzKHR2BcAHk_jAdCs1OIquXT4L0LM-T9Ge8z5DsZA_fanhrBkqQ0nBt/exec";
 
     let subscribers = [];
     let sales = [];
@@ -316,7 +316,7 @@
     }
 
     function pushDatabaseToCloud() {
-      if (!navigator.onLine || isSyncingInProgress) return;
+      if (!navigator.onLine || isSyncingInProgress || GOOGLE_API_URL.includes("ဒီနေရာမှာ")) return;
       
       isSyncingInProgress = true;
       const badge = document.getElementById('cloudStatusBadge');
@@ -332,14 +332,19 @@
 
       fetch(GOOGLE_API_URL, {
         method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(payload)
       })
-      .then(() => {
+      .then(res => res.json())
+      .then(data => {
         isSyncingInProgress = false;
-        badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 🟢 Online Cloud Synced`;
-        badge.className = "bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none";
+        if(data.status === "success") {
+          badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 🟢 Online Cloud Synced`;
+          badge.className = "bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none";
+        } else {
+          console.error("Backend Error Response:", data.message);
+          badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> ⚠️ Sync Error: Column Mismatch`;
+        }
       })
       .catch(err => {
         isSyncingInProgress = false;
@@ -501,7 +506,7 @@
     }
 
     function deleteSubscriber(idx) {
-      if(confirm("ဤ Subscriber အား ဖျက်ရန် သေချာပါသလား? (၎င်း၏စာရင်းများပါ Cloud ပေါ်မှ တစ်ပါတည်း ပျက်သွားပါမည်)")) {
+      if(confirm("ဤ Subscriber အား ဖျက်ရန် သေჩာပါသလား? (၎င်း၏စာရင်းများပါ Cloud ပေါ်မှ တစ်ပါတည်း ပျက်သွားပါမည်)")) {
         const targetName = subscribers[idx].name;
         subscribers.splice(idx, 1);
         renewHistory = renewHistory.filter(r => r.name !== targetName);
