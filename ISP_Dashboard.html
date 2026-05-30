@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ISP Enterprise Custom Management System</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-100 font-sans antialiased text-gray-800" onload="initApp()">
+
+  <nav class="bg-slate-900 text-white shadow-xl sticky top-0 z-50 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">📡</span>
+        <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+          ISP Professional Network & Billing System
+        </h1>
+      </div>
+      
+      <div class="flex flex-col sm:flex-row items-center gap-4">
+        <div class="flex flex-wrap gap-2 bg-slate-800/60 p-1.5 rounded-xl border border-slate-700">
+          <button onclick="switchTab('dashboard')" id="btn-dashboard" class="nav-btn bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm transition cursor-pointer">Dashboard</button>
+          <button onclick="switchTab('subscribers')" id="btn-subscribers" class="nav-btn text-gray-400 hover:text-white px-4 py-2 rounded-lg font-semibold text-sm transition cursor-pointer">Subscribers</button>
+          <button onclick="switchTab('sales')" id="btn-sales" class="nav-btn text-gray-400 hover:text-white px-4 py-2 rounded-lg font-semibold text-sm transition cursor-pointer">Product Sales</button>
+          <button onclick="switchTab('expenses')" id="btn-expenses" class="nav-btn text-gray-400 hover:text-white px-4 py-2 rounded-lg font-semibold text-sm transition cursor-pointer">Expenses</button>
+          <button onclick="switchTab('renew-history')" id="btn-renew-history" class="nav-btn text-gray-400 hover:text-white px-4 py-2 rounded-lg font-semibold text-sm transition cursor-pointer">Renew History</button>
+        </div>
+        
+        <div id="cloudStatusBadge" class="bg-slate-800 border border-slate-700 text-slate-400 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none">
+          <span class="w-2.5 h-2.5 rounded-full bg-slate-500 animate-pulse"></span> Connecting...
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+
+    <div id="expiryNotificationBox" onclick="triggerExpiryAlertFilter()" class="hidden bg-amber-50 border-l-4 border-amber-500 p-4 rounded-xl shadow-sm flex justify-between items-center cursor-pointer hover:bg-amber-100/80 transition animate-pulse">
+      <div class="flex items-center gap-3">
+        <span class="text-xl">⏳</span>
+        <div>
+          <p class="text-sm font-black text-amber-800" id="notificationText">၃ ရက်အတွင်း သက်တမ်းကုန်မည့် Subscriber ရှိပါသည်၊၊</p>
+          <p class="text-xs text-amber-600 font-medium">ဤနေရာကို နှိပ်ပြီး ၎င်းတို့အားလုံးကို သီးသန့် စာရင်းထုတ်ကြည့်ပါရန်</p>
+        </div>
+      </div>
+      <span class="text-xs bg-amber-500 text-white px-2.5 py-1 rounded-lg font-bold">စာရင်းကြည့်မည်</span>
+    </div>
+
+    <div id="tab-dashboard" class="tab-content space-y-6">
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div>
+          <h2 class="text-lg font-bold text-gray-800">📊 လစဉ် လုပ်ငန်းအခြေပြ Matrix</h2>
+          <p class="text-xs text-gray-500">ရွေးချယ်ထားသော လအလိုက် ဘဏ္ဍာရေး အခြေအနေကို တွက်ချက်ပြသခြင်း</p>
+        </div>
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <label class="text-sm font-semibold text-gray-600 shrink-0">လရွေးချယ်ရန်:</label>
+          <input type="month" id="filterMonth" onchange="calculateFinancials()" class="w-full sm:w-48 p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-blue-600">
+          <p class="text-xs font-bold text-gray-400 uppercase">လစဉ်ကြေး စုစုပေါင်း</p>
+          <p class="text-lg font-black text-blue-600 mt-1" id="m-monthly">0 MMK</p>
+        </div>
+        <div class="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-cyan-500">
+          <p class="text-xs font-bold text-gray-400 uppercase">Install Fee စုစုပေါင်း</p>
+          <p class="text-lg font-black text-cyan-600 mt-1" id="m-install">0 MMK</p>
+        </div>
+        <div class="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-emerald-500">
+          <p class="text-xs font-bold text-gray-400 uppercase">ပစ္စည်းအရောင်း စုစုပေါင်း</p>
+          <p class="text-lg font-black text-emerald-600 mt-1" id="m-sales">0 MMK</p>
+        </div>
+        <div class="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-red-500">
+          <p class="text-xs font-bold text-gray-400 uppercase">စုစုပေါင်း အသုံးစရိတ်</p>
+          <p class="text-lg font-black text-red-600 mt-1" id="m-expenses">0 MMK</p>
+        </div>
+        <div class="bg-gradient-to-br from-slate-800 to-slate-900 p-5 rounded-2xl shadow-md text-white">
+          <p class="text-xs font-bold text-slate-400 uppercase">အသားတင်အမြတ်</p>
+          <p class="text-xl font-black text-emerald-400 mt-1" id="m-profit">0 MMK</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-subscribers" class="tab-content hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 h-fit space-y-4">
+        <h3 class="text-lg font-bold border-b pb-2 flex items-center gap-2 text-gray-800" id="formTitle">
+          👤 Subscriber စာရင်းသွင်း/ပြင်ဆင်ရန်
+        </h3>
+        <input type="hidden" id="editIndex">
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Customer အမည်</label>
+            <input type="text" id="custName" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">ဖုန်းနံပါတ်</label>
+            <input type="text" id="custPhone" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-gray-500 uppercase mb-1">လစဉ်ကြေး</label>
+              <input type="number" id="custMonthly" value="0" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Install Fee</label>
+              <input type="number" id="custInstall" value="0" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">သက်တမ်းကုန်မည့်ရက်</label>
+            <input type="date" id="custExpiry" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div class="flex gap-2 pt-2">
+            <button onclick="saveSubscriber()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow cursor-pointer transition">စာရင်းသိမ်းမည်</button>
+            <button onclick="cancelEdit()" id="btnCancelEdit" class="hidden bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold px-4 rounded-xl cursor-pointer transition">ပယ်ဖျက်</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+        <div class="p-4 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3">
+          <div class="flex items-center gap-2">
+            <h3 class="font-bold text-gray-800 text-base">📋 Subscriber စောင့်ကြည့်ဘုတ်</h3>
+            <button onclick="clearTableFilters()" id="btnClearFilter" class="hidden text-xs bg-red-100 text-red-700 px-2 py-1 rounded-lg font-bold hover:bg-red-200 transition cursor-pointer">❌ Reset Filter</button>
+          </div>
+          <input type="text" id="searchBox" oninput="renderSubscribers()" placeholder="အမည် သို့မဟုတ် ဖုန်းဖြင့်ရှာရန်..." class="w-full sm:w-64 p-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div class="overflow-x-auto flex-1">
+          <table class="w-full text-left border-collapse whitespace-nowrap">
+            <thead>
+              <tr class="bg-gray-100/80 text-gray-600 text-xs uppercase font-bold border-b border-gray-200">
+                <th class="p-3.5">အမည်</th>
+                <th class="p-3.5">ဖုန်းနံပါတ်</th>
+                <th class="p-3.5">လစဉ်ကြေး/Install</th>
+                <th class="p-3.5">သက်တမ်းကုန်ရက်</th>
+                <th class="p-3.5 text-center">အခြေအနေ</th>
+                <th class="p-3.5 text-center">လုပ်ဆောင်ချက်</th>
+              </tr>
+            </thead>
+            <tbody id="subTableBody" class="divide-y divide-gray-100 text-sm"></tbody>
+          </table>
+        </div>
+
+        <div class="p-4 bg-gray-50 border-t border-gray-200 flex justify-between items-center text-xs font-semibold text-gray-600">
+          <span id="pageIndicator">Showing page 1 of 1</span>
+          <div class="flex gap-2">
+            <button onclick="changePage(-1)" id="btnPrev" class="px-3 py-1.5 bg-white border border-gray-300 rounded-lg shadow-sm disabled:opacity-40 cursor-pointer">Previous</button>
+            <button onclick="changePage(1)" id="btnNext" class="px-3 py-1.5 bg-white border border-gray-300 rounded-lg shadow-sm disabled:opacity-40 cursor-pointer">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-sales" class="tab-content hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 h-fit space-y-4">
+        <h3 class="text-lg font-bold border-b pb-2 text-gray-800">📦 ပစ္စည်းအရောင်းစာရင်းသွင်းရန်</h3>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">ပစ္စည်း/ဝန်ဆောင်မှု အမည်</label>
+            <input type="text" id="saleItem" class="w-full p-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-gray-500 uppercase mb-1">နှုန်းထား</label>
+              <input type="number" id="salePrice" value="0" class="w-full p-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-500 uppercase mb-1">အရေအတွက် (Qty)</label>
+              <input type="number" id="saleQty" value="1" class="w-full p-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">ရက်စွဲ</label>
+            <input type="date" id="saleDate" class="w-full p-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <button onclick="saveSale()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow cursor-pointer transition">ရောင်းရငွေ သိမ်းမည်</button>
+        </div>
+      </div>
+      <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="p-4 bg-gray-50 font-bold border-b text-gray-800">🛒 အရောင်းသမိုင်းကြောင်း</div>
+        <div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead class="bg-gray-100 text-xs font-bold text-gray-600 border-b"><tr><th class="p-3">ရက်စွဲ</th><th class="p-3">ပစ္စည်း</th><th class="p-3">နှုန်းထား x Qty</th><th class="p-3">စုစုပေါင်း</th><th class="p-3 text-center">လုပ်ဆောင်ချက်</th></tr></thead><tbody id="salesTableBody" class="divide-y text-sm"></tbody></table></div>
+      </div>
+    </div>
+
+    <div id="tab-expenses" class="tab-content hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 h-fit space-y-4">
+        <h3 class="text-lg font-bold border-b pb-2 text-gray-800">💸 အသုံးစရိတ်/ပစ္စည်းမှာယူမှု သွင်းရန်</h3>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">အသုံးစရိတ် ခေါင်းစဉ်</label>
+            <input type="text" id="expTitle" class="w-full p-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-gray-500 uppercase mb-1">နှုန်းထား</label>
+              <input type="number" id="expPrice" value="0" class="w-full p-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-500 uppercase mb-1">အရေအတွက် (Qty)</label>
+              <input type="number" id="expQty" value="1" class="w-full p-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">ရက်စွဲ</label>
+            <input type="date" id="expDate" class="w-full p-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500">
+          </div>
+          <button onclick="saveExpense()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl shadow cursor-pointer transition">အသုံးစရိတ် သိမည်</button>
+        </div>
+      </div>
+      <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="p-4 bg-gray-50 font-bold border-b text-gray-800">📉 အသုံးစရိတ် စာရင်းမှတ်တမ်း</div>
+        <div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead class="bg-gray-100 text-xs font-bold text-gray-600 border-b"><tr><th class="p-3">ရက်စွဲ</th><th class="p-3">ခေါင်းစဉ်</th><th class="p-3">နှုန်းထား x Qty</th><th class="p-3">စုစုပေါင်း</th><th class="p-3 text-center">လုပ်ဆောင်ချက်</th></tr></thead><tbody id="expensesTableBody" class="divide-y text-sm"></tbody></table></div>
+      </div>
+    </div>
+
+    <div id="tab-renew-history" class="tab-content hidden bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+      <div class="p-4 bg-gray-50 font-bold border-b text-gray-800">🔄 Subscriber များ သက်တမ်းတိုးခဲ့မှု ရာဇဝင်မှတ်တမ်း</div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse whitespace-nowrap">
+          <thead class="bg-gray-100 text-xs font-bold text-gray-600 border-b">
+            <tr>
+              <th class="p-4">ရက်စွဲ</th>
+              <th class="p-4">Subscriber အမည်</th>
+              <th class="p-4">ပေးချေခဲ့သည့် လစဉ်ကြေး</th>
+              <th class="p-4">သက်တမ်းတိုးပေးလိုက်သည့်ရက်</th>
+            </tr>
+          </thead>
+          <tbody id="renewTableBody" class="divide-y text-sm"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="renewModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4 animate-fade-in">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
+      <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">🔄 Subscriber သက်တမ်းတိုးခြင်း</h3>
+      <div>
+        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Subscriber</label>
+        <input type="text" id="modalName" readonly class="w-full p-2 bg-gray-100 border border-gray-200 rounded-xl font-semibold text-gray-700">
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">လစဉ်ကြေး ကောက်ခံငွေ (MMK)</label>
+        <input type="number" id="modalAmount" class="w-full p-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">သက်တမ်းတိုးမည့် ရက်စွဲအသစ်</label>
+        <input type="date" id="modalNewExpiry" class="w-full p-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div class="flex gap-2 justify-end pt-2">
+        <button onclick="closeRenewModal()" class="px-4 py-2 text-sm font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl cursor-pointer">ပယ်ဖျက်</button>
+        <button onclick="submitRenew()" class="px-5 py-2 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow cursor-pointer">သက်တမ်းတိုးမည်</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- BACKEND API GOOGLE WEB APP GATEWAY CONFIG ---
+    const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbz3xPQVAcXbVEWlSBWe7BOREwJhpXYElUgnjPzn3JoEb2KTT1m4sroYievC8TZgUhWy/exec";
+
+    let subscribers = [];
+    let sales = [];
+    let expenses = [];
+    let renewHistory = [];
+    
+    let currentPage = 1;
+    const rowsPerPage = 10;
+    let currentRenewIndex = null;
+    let filterExpiryOnlyMode = false;
+    let isSyncingInProgress = false;
+
+    function initApp() {
+      subscribers = JSON.parse(localStorage.getItem('isp_subscribers')) || [];
+      sales = JSON.parse(localStorage.getItem('isp_sales')) || [];
+      expenses = JSON.parse(localStorage.getItem('isp_expenses')) || [];
+      renewHistory = JSON.parse(localStorage.getItem('isp_renew_history')) || [];
+      
+      const today = new Date();
+      document.getElementById('filterMonth').value = today.toISOString().substring(0, 7);
+      document.getElementById('saleDate').value = today.toISOString().substring(0, 10);
+      document.getElementById('expDate').value = today.toISOString().substring(0, 10);
+
+      // Listen to real-time browser network status shifts
+      window.addEventListener('online', updateNetworkStatusUI);
+      window.addEventListener('offline', updateNetworkStatusUI);
+
+      updateNetworkStatusUI();
+      checkExpiryNotifications();
+      calculateFinancials();
+      renderSubscribers();
+      renderSales();
+      renderExpenses();
+      renderRenewHistory();
+    }
+
+    // --- HYBRID ONLINE/OFFLINE REALTIME NETWORK ENGINE ---
+    function updateNetworkStatusUI() {
+      const badge = document.getElementById('cloudStatusBadge');
+      if (navigator.onLine) {
+        badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 🟢 Online Cloud Synced`;
+        badge.className = "bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none";
+        // Auto trigger synchronizer background pool when connectivity revives
+        pushDatabaseToCloud();
+      } else {
+        badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span> ⚠️ Offline Mode (Local Mode)`;
+        badge.className = "bg-red-50 border border-red-200 text-red-700 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none";
+      }
+    }
+
+    function pushDatabaseToCloud() {
+      if (!navigator.onLine || isSyncingInProgress) return;
+      
+      isSyncingInProgress = true;
+      const badge = document.getElementById('cloudStatusBadge');
+      badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-spin"></span> ☁️ Syncing to Cloud...`;
+      badge.className = "bg-blue-50 border border-blue-200 text-blue-700 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none";
+
+      const payload = {
+        subscribers: subscribers,
+        renewHistory: renewHistory,
+        sales: sales,
+        expenses: expenses
+      };
+
+      // Native Cross-Origin fetch payload injection directly to Google script endpoint architecture
+      fetch(GOOGLE_API_URL, {
+        method: "POST",
+        mode: "no-cors", // Required bypassing for Google macro endpoints redirect filters
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+      .then(() => {
+        isSyncingInProgress = false;
+        badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 🟢 Online Cloud Synced`;
+        badge.className = "bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none";
+      })
+      .catch(err => {
+        isSyncingInProgress = false;
+        console.error("Cloud Sync Pipeline Interruption:", err);
+        updateNetworkStatusUI();
+      });
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.getElementById('tab-' + tabId).classList.remove('hidden');
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-blue-600', 'text-white'));
+      document.getElementById('btn-' + tabId).classList.add('bg-blue-600', 'text-white');
+    }
+
+    function checkExpiryNotifications() {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const threeDaysLater = new Date(); threeDaysLater.setDate(today.getDate() + 3); threeDaysLater.setHours(23,59,59,999);
+
+      let upcomingCount = 0;
+      subscribers.forEach(s => {
+        const expDate = new Date(s.expiry);
+        if (expDate >= today && expDate <= threeDaysLater) upcomingCount++;
+      });
+
+      const notiBox = document.getElementById('expiryNotificationBox');
+      if (upcomingCount > 0) {
+        document.getElementById('notificationText').innerText = `⏳ ၃ ရက်အတွင်း သက်တမ်းကုန်မည့် Subscriber (${upcomingCount}) ဦး ရှိပါသည်၊၊`;
+        notiBox.classList.remove('hidden');
+      } else {
+        notiBox.classList.add('hidden');
+      }
+    }
+
+    function triggerExpiryAlertFilter() {
+      filterExpiryOnlyMode = true;
+      document.getElementById('btnClearFilter').classList.remove('hidden');
+      switchTab('subscribers');
+      currentPage = 1; renderSubscribers();
+    }
+
+    function clearTableFilters() {
+      filterExpiryOnlyMode = false;
+      document.getElementById('searchBox').value = '';
+      document.getElementById('btnClearFilter').classList.add('hidden');
+      renderSubscribers();
+    }
+
+    function calculateFinancials() {
+      const selectedMonth = document.getElementById('filterMonth').value;
+      if (!selectedMonth) return;
+
+      let totalMonthly = 0; let totalInstall = 0; let totalSales = 0; let totalExpenses = 0;
+
+      subscribers.forEach(s => { if (s.regDate && s.regDate.substring(0, 7) === selectedMonth) totalInstall += parseFloat(s.install || 0); });
+      renewHistory.forEach(r => { if (r.date && r.date.substring(0, 7) === selectedMonth) totalMonthly += parseFloat(r.amount || 0); });
+      sales.forEach(s => { if (s.date && s.date.substring(0, 7) === selectedMonth) totalSales += parseFloat(s.total || 0); });
+      expenses.forEach(e => { if (e.date && e.date.substring(0, 7) === selectedMonth) totalExpenses += parseFloat(e.total || 0); });
+
+      let netProfit = (totalMonthly + totalInstall + totalSales) - totalExpenses;
+      document.getElementById('m-monthly').innerText = totalMonthly.toLocaleString() + " MMK";
+      document.getElementById('m-install').innerText = totalInstall.toLocaleString() + " MMK";
+      document.getElementById('m-sales').innerText = totalSales.toLocaleString() + " MMK";
+      document.getElementById('m-expenses').innerText = totalExpenses.toLocaleString() + " MMK";
+      
+      const profitEl = document.getElementById('m-profit'); profitEl.innerText = netProfit.toLocaleString() + " MMK";
+      profitEl.className = netProfit >= 0 ? "text-xl font-black text-emerald-400 mt-1" : "text-xl font-black text-red-400 mt-1";
+    }
+
+    function saveSubscriber() {
+      const name = document.getElementById('custName').value;
+      const phone = document.getElementById('custPhone').value;
+      const monthly = parseFloat(document.getElementById('custMonthly').value) || 0;
+      const install = parseFloat(document.getElementById('custInstall').value) || 0;
+      const expiry = document.getElementById('custExpiry').value;
+      const editIndex = document.getElementById('editIndex').value;
+
+      if (!name || !expiry) { alert('အမည်နှင့် သက်တမ်းကုန်ရက်ကို မဖြစ်မနေ ဖြည့်သွင်းပေးပါရန်!'); return; }
+      const todayStr = new Date().toISOString().substring(0, 10);
+
+      if (editIndex !== "") {
+        const idx = parseInt(editIndex);
+        subscribers[idx].name = name; subscribers[idx].phone = phone;
+        subscribers[idx].monthly = monthly; subscribers[idx].install = install; subscribers[idx].expiry = expiry;
+      } else {
+        subscribers.push({ name, phone, monthly, install, expiry, regDate: todayStr });
+        if (monthly > 0) renewHistory.push({ date: todayStr, name: name, amount: monthly, expiry: expiry });
+      }
+      saveAndRefresh(); cancelEdit();
+    }
+
+    function renderSubscribers() {
+      const q = document.getElementById('searchBox').value.toLowerCase();
+      const today = new Date(); today.setHours(0,0,0,0);
+      const threeDaysLater = new Date(); threeDaysLater.setDate(today.getDate() + 3); threeDaysLater.setHours(23,59,59,999);
+
+      let filtered = subscribers.map((s, idx) => ({...s, originalIndex: idx}))
+                                .filter(s => s.name.toLowerCase().includes(q) || s.phone.includes(q));
+
+      if (filterExpiryOnlyMode) {
+        filtered = filtered.filter(s => { const expDate = new Date(s.expiry); return (expDate >= today && expDate <= threeDaysLater); });
+      }
+
+      const totalPages = Math.ceil(filtered.length / rowsPerPage) || 1;
+      if (currentPage > totalPages) currentPage = totalPages;
+      document.getElementById('pageIndicator').innerText = `Page ${currentPage} of ${totalPages} (${filtered.length} Users)`;
+      document.getElementById('btnPrev').disabled = currentPage === 1;
+      document.getElementById('btnNext').disabled = currentPage === totalPages;
+
+      const tbody = document.getElementById('subTableBody'); tbody.innerHTML = '';
+      const pageData = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+
+      pageData.forEach(s => {
+        const expDate = new Date(s.expiry); let statusBadge = "";
+        if (expDate < today) statusBadge = `<span class="bg-red-100 text-red-700 px-2.5 py-1 rounded-md text-xs font-black border border-red-200">🔴 သက်တမ်းကုန်ပြီ</span>`;
+        else if (expDate <= threeDaysLater) statusBadge = `<span class="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-md text-xs font-black border border-amber-200">⏳ ၃ ရက်အတွင်း ကုန်မည်</span>`;
+        else statusBadge = `<span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-md text-xs font-black border border-emerald-200">🟢 Active</span>`;
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-gray-50 transition">
+            <td class="p-3 font-semibold text-gray-900">${s.name}</td>
+            <td class="p-3 text-gray-500">${s.phone || '-'}</td>
+            <td class="p-3 font-medium text-gray-700">M: ${s.monthly.toLocaleString()} / Ins: ${s.install.toLocaleString()}</td>
+            <td class="p-3 font-medium text-gray-600">${s.expiry}</td>
+            <td class="p-3 text-center">${statusBadge}</td>
+            <td class="p-3 text-center space-x-1">
+              <button onclick="openRenewModal(${s.originalIndex})" class="bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold px-2 py-1 text-xs rounded border border-blue-200 cursor-pointer">Renew</button>
+              <button onclick="editSubscriber(${s.originalIndex})" class="bg-amber-50 hover:bg-amber-100 text-amber-600 font-bold px-2 py-1 text-xs rounded border border-amber-200 cursor-pointer">Edit</button>
+              <button onclick="deleteSubscriber(${s.originalIndex})" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-2 py-1 text-xs rounded border border-red-200 cursor-pointer">Delete</button>
+            </td>
+          </tr>`;
+      });
+    }
+
+    function editSubscriber(idx) {
+      document.getElementById('editIndex').value = idx;
+      document.getElementById('custName').value = subscribers[idx].name; document.getElementById('custPhone').value = subscribers[idx].phone;
+      document.getElementById('custMonthly').value = subscribers[idx].monthly; document.getElementById('custInstall').value = subscribers[idx].install;
+      document.getElementById('custExpiry').value = subscribers[idx].expiry;
+      document.getElementById('formTitle').innerText = "📝 Subscriber အချက်အလက်ပြင်ဆင်ရန်";
+      document.getElementById('btnCancelEdit').classList.remove('hidden');
+    }
+
+    function cancelEdit() {
+      document.getElementById('editIndex').value = ""; document.getElementById('custName').value = ""; document.getElementById('custPhone').value = "";
+      document.getElementById('custMonthly').value = "0"; document.getElementById('custInstall').value = "0"; document.getElementById('custExpiry').value = "";
+      document.getElementById('formTitle').innerText = "👤 Subscriber စာရင်းသွင်း/ပြင်ဆင်ရန်";
+      document.getElementById('btnCancelEdit').classList.add('hidden');
+    }
+
+    function deleteSubscriber(idx) {
+      if(confirm("ဤ Subscriber အား ဖျက်ရန် သေချာပါသလား? (၎င်း၏စာရင်းများပါ Cloud ပေါ်မှ တစ်ပါတည်း ပျက်သွားပါမည်)")) {
+        const targetName = subscribers[idx].name;
+        subscribers.splice(idx, 1);
+        renewHistory = renewHistory.filter(r => r.name !== targetName);
+        saveAndRefresh(); renderRenewHistory();
+      }
+    }
+
+    function changePage(dir) { currentPage += dir; renderSubscribers(); }
+
+    function openRenewModal(idx) {
+      currentRenewIndex = idx;
+      document.getElementById('modalName').value = subscribers[idx].name;
+      document.getElementById('modalAmount').value = subscribers[idx].monthly;
+      document.getElementById('modalNewExpiry').value = '';
+      document.getElementById('renewModal').classList.remove('hidden');
+    }
+
+    function closeRenewModal() { document.getElementById('renewModal').classList.add('hidden'); }
+
+    function submitRenew() {
+      const amount = parseFloat(document.getElementById('modalAmount').value) || 0;
+      const newExpiry = document.getElementById('modalNewExpiry').value;
+      const todayStr = new Date().toISOString().substring(0, 10);
+
+      if(!newExpiry) { alert("သက်တမ်းကုန်မည့် ရက်စွဲအသစ်ကို ရွေးချယ်ပေးပါဗျာ။"); return; }
+      subscribers[currentRenewIndex].expiry = newExpiry;
+      renewHistory.push({ date: todayStr, name: subscribers[currentRenewIndex].name, amount: amount, expiry: newExpiry });
+      closeRenewModal(); saveAndRefresh(); renderRenewHistory();
+    }
+
+    function saveSale() {
+      const item = document.getElementById('saleItem').value; const price = parseFloat(document.getElementById('salePrice').value) || 0;
+      const qty = parseInt(document.getElementById('saleQty').value) || 1; const date = document.getElementById('saleDate').value;
+      if(!item || !date) { alert("အချက်အလက်များကို ဖြည့်စွက်ပါဗျာ။"); return; }
+      sales.push({ date, item, total: price * qty, rate: price, qty });
+      localStorage.setItem('isp_sales', JSON.stringify(sales));
+      document.getElementById('saleItem').value = ''; document.getElementById('salePrice').value = '0';
+      calculateFinancials(); renderSales(); pushDatabaseToCloud();
+    }
+
+    function renderSales() {
+      const tbody = document.getElementById('salesTableBody'); tbody.innerHTML = '';
+      sales.forEach((s, idx) => {
+        tbody.innerHTML += `<tr><td class="p-3">${s.date}</td><td class="p-3 font-semibold">${s.item}</td><td class="p-3">${s.rate.toLocaleString()} x ${s.qty}</td><td class="p-3 font-bold text-emerald-600">${s.total.toLocaleString()} MMK</td><td class="p-3 text-center"><button onclick="deleteSale(${idx})" class="text-red-500 font-bold hover:underline cursor-pointer">ဖျက်</button></td></tr>`;
+      });
+    }
+
+    function deleteSale(idx) {
+      sales.splice(idx, 1); localStorage.setItem('isp_sales', JSON.stringify(sales));
+      calculateFinancials(); renderSales(); pushDatabaseToCloud();
+    }
+
+    function saveExpense() {
+      const title = document.getElementById('expTitle').value; const price = parseFloat(document.getElementById('expPrice').value) || 0;
+      const qty = parseInt(document.getElementById('expQty').value) || 1; const date = document.getElementById('expDate').value;
+      if(!title || !date) { alert("အချက်အလက်များကို ဖြည့်စွက်ပါဗျာ။"); return; }
+      expenses.push({ date, title, total: price * qty, rate: price, qty });
+      localStorage.setItem('isp_expenses', JSON.stringify(expenses));
+      document.getElementById('expTitle').value = '';
+      calculateFinancials(); renderExpenses(); pushDatabaseToCloud();
+    }
+
+    function renderExpenses() {
+      const tbody = document.getElementById('expensesTableBody'); tbody.innerHTML = '';
+      expenses.forEach((e, idx) => {
+        tbody.innerHTML += `<tr><td class="p-3">${e.date}</td><td class="p-3 font-semibold">${e.title}</td><td class="p-3">${e.rate.toLocaleString()} x ${e.qty}</td><td class="p-3 font-bold text-red-600">${e.total.toLocaleString()} MMK</td><td class="p-3 text-center"><button onclick="deleteExpense(${idx})" class="text-red-500 font-bold hover:underline cursor-pointer">ဖျက်</button></td></tr>`;
+      });
+    }
+
+    function deleteExpense(idx) {
+      expenses.splice(idx, 1); localStorage.setItem('isp_expenses', JSON.stringify(expenses));
+      calculateFinancials(); renderExpenses(); pushDatabaseToCloud();
+    }
+
+    function renderRenewHistory() {
+      const tbody = document.getElementById('renewTableBody'); tbody.innerHTML = '';
+      [...renewHistory].reverse().forEach(r => {
+        tbody.innerHTML += `<tr><td class="p-3.5">${r.date}</td><td class="p-3.5 font-bold">${r.name}</td><td class="p-3.5 text-blue-600 font-semibold">${r.amount.toLocaleString()} MMK</td><td class="p-3.5 font-medium text-gray-600">${r.expiry}</td></tr>`;
+      });
+    }
+
+    function saveAndRefresh() {
+      localStorage.setItem('isp_subscribers', JSON.stringify(subscribers));
+      localStorage.setItem('isp_renew_history', JSON.stringify(renewHistory));
+      checkExpiryNotifications(); calculateFinancials(); renderSubscribers();
+      // Pipe push trigger
+      pushDatabaseToCloud();
+    }
+  </script>
+</body>
+</html>
