@@ -97,14 +97,22 @@
             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">ဖုန်းနံပါတ်</label>
             <input type="text" id="custPhone" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">အင်တာနက် Plan (Speed)</label>
+            <select id="custPlan" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+              <option value="15Mbps">15Mbps</option>
+              <option value="25Mbps">25Mbps</option>
+              <option value="35Mbps">35Mbps</option>
+            </select>
+          </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-bold text-gray-500 uppercase mb-1">လစဉ်ကြေး</label>
-              <input type="number" id="custMonthly" value="0" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <input type="number" id="custMonthly" placeholder="" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
             </div>
             <div>
               <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Install Fee</label>
-              <input type="number" id="custInstall" value="0" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <input type="number" id="custInstall" placeholder="" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
             </div>
           </div>
           <div>
@@ -121,10 +129,10 @@
       <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
         <div class="p-4 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3">
           <div class="flex items-center gap-2">
-            <h3 class="font-bold text-gray-800 text-base">📋 Subscriber စောင့်ကြည့်ဘုတ်</h3>
+            <h3 class="font-bold text-gray-800 text-base">📋 Subscriber List</h3>
             <button onclick="clearTableFilters()" id="btnClearFilter" class="hidden text-xs bg-red-100 text-red-700 px-2 py-1 rounded-lg font-bold hover:bg-red-200 transition cursor-pointer">❌ Reset Filter</button>
           </div>
-          <input type="text" id="searchBox" oninput="renderSubscribers()" placeholder="အမည် သို့မဟုတ် ဖုန်းဖြင့်ရှာရန်..." class="w-full sm:w-64 p-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <input type="text" id="searchBox" oninput="renderSubscribers()" placeholder="အမည်၊ ဖုန်း သို့မဟုတ် Plan ဖြင့်ရှာရန်..." class="w-full sm:w-64 p-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
 
         <div class="overflow-x-auto flex-1">
@@ -133,6 +141,7 @@
               <tr class="bg-gray-100/80 text-gray-600 text-xs uppercase font-bold border-b border-gray-200">
                 <th class="p-3.5">အမည်</th>
                 <th class="p-3.5">ဖုန်းနံပါတ်</th>
+                <th class="p-3.5">Plan</th>
                 <th class="p-3.5">လစဉ်ကြေး/Install</th>
                 <th class="p-3.5">သက်တမ်းကုန်ရက်</th>
                 <th class="p-3.5 text-center">အခြေအနေ</th>
@@ -164,7 +173,7 @@
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-bold text-gray-500 uppercase mb-1">နှုန်းထား</label>
-              <input type="number" id="salePrice" value="0" class="w-full p-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <input type="number" id="salePrice" placeholder="နှုန်းထား" class="w-full p-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
             <div>
               <label class="block text-xs font-bold text-gray-500 uppercase mb-1">အရေအတွက် (Qty)</label>
@@ -195,7 +204,7 @@
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-bold text-gray-500 uppercase mb-1">နှုန်းထား</label>
-              <input type="number" id="expPrice" value="0" class="w-full p-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500">
+              <input type="number" id="expPrice" placeholder="နှုန်းထား" class="w-full p-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500">
             </div>
             <div>
               <label class="block text-xs font-bold text-gray-500 uppercase mb-1">အရေအတွက် (Qty)</label>
@@ -282,7 +291,6 @@
       document.getElementById('saleDate').value = today.toISOString().substring(0, 10);
       document.getElementById('expDate').value = today.toISOString().substring(0, 10);
 
-      // Listen to real-time browser network status shifts
       window.addEventListener('online', updateNetworkStatusUI);
       window.addEventListener('offline', updateNetworkStatusUI);
 
@@ -295,13 +303,11 @@
       renderRenewHistory();
     }
 
-    // --- HYBRID ONLINE/OFFLINE REALTIME NETWORK ENGINE ---
     function updateNetworkStatusUI() {
       const badge = document.getElementById('cloudStatusBadge');
       if (navigator.onLine) {
         badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 🟢 Online Cloud Synced`;
         badge.className = "bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none";
-        // Auto trigger synchronizer background pool when connectivity revives
         pushDatabaseToCloud();
       } else {
         badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span> ⚠️ Offline Mode (Local Mode)`;
@@ -324,10 +330,9 @@
         expenses: expenses
       };
 
-      // Native Cross-Origin fetch payload injection directly to Google script endpoint architecture
       fetch(GOOGLE_API_URL, {
         method: "POST",
-        mode: "no-cors", // Required bypassing for Google macro endpoints redirect filters
+        mode: "no-cors",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       })
@@ -407,6 +412,7 @@
     function saveSubscriber() {
       const name = document.getElementById('custName').value;
       const phone = document.getElementById('custPhone').value;
+      const plan = document.getElementById('custPlan').value;
       const monthly = parseFloat(document.getElementById('custMonthly').value) || 0;
       const install = parseFloat(document.getElementById('custInstall').value) || 0;
       const expiry = document.getElementById('custExpiry').value;
@@ -417,10 +423,10 @@
 
       if (editIndex !== "") {
         const idx = parseInt(editIndex);
-        subscribers[idx].name = name; subscribers[idx].phone = phone;
+        subscribers[idx].name = name; subscribers[idx].phone = phone; subscribers[idx].plan = plan;
         subscribers[idx].monthly = monthly; subscribers[idx].install = install; subscribers[idx].expiry = expiry;
       } else {
-        subscribers.push({ name, phone, monthly, install, expiry, regDate: todayStr });
+        subscribers.push({ name, phone, plan, monthly, install, expiry, regDate: todayStr });
         if (monthly > 0) renewHistory.push({ date: todayStr, name: name, amount: monthly, expiry: expiry });
       }
       saveAndRefresh(); cancelEdit();
@@ -432,7 +438,7 @@
       const threeDaysLater = new Date(); threeDaysLater.setDate(today.getDate() + 3); threeDaysLater.setHours(23,59,59,999);
 
       let filtered = subscribers.map((s, idx) => ({...s, originalIndex: idx}))
-                                .filter(s => s.name.toLowerCase().includes(q) || s.phone.includes(q));
+                                .filter(s => s.name.toLowerCase().includes(q) || (s.phone && s.phone.includes(q)) || (s.plan && s.plan.toLowerCase().includes(q)));
 
       if (filterExpiryOnlyMode) {
         filtered = filtered.filter(s => { const expDate = new Date(s.expiry); return (expDate >= today && expDate <= threeDaysLater); });
@@ -457,6 +463,7 @@
           <tr class="hover:bg-gray-50 transition">
             <td class="p-3 font-semibold text-gray-900">${s.name}</td>
             <td class="p-3 text-gray-500">${s.phone || '-'}</td>
+            <td class="p-3"><span class="px-2 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-lg border border-slate-200">${s.plan || '15Mbps'}</span></td>
             <td class="p-3 font-medium text-gray-700">M: ${s.monthly.toLocaleString()} / Ins: ${s.install.toLocaleString()}</td>
             <td class="p-3 font-medium text-gray-600">${s.expiry}</td>
             <td class="p-3 text-center">${statusBadge}</td>
@@ -471,16 +478,24 @@
 
     function editSubscriber(idx) {
       document.getElementById('editIndex').value = idx;
-      document.getElementById('custName').value = subscribers[idx].name; document.getElementById('custPhone').value = subscribers[idx].phone;
-      document.getElementById('custMonthly').value = subscribers[idx].monthly; document.getElementById('custInstall').value = subscribers[idx].install;
+      document.getElementById('custName').value = subscribers[idx].name; 
+      document.getElementById('custPhone').value = subscribers[idx].phone || "";
+      document.getElementById('custPlan').value = subscribers[idx].plan || "15Mbps";
+      document.getElementById('custMonthly').value = subscribers[idx].monthly || ""; 
+      document.getElementById('custInstall').value = subscribers[idx].install || "";
       document.getElementById('custExpiry').value = subscribers[idx].expiry;
       document.getElementById('formTitle').innerText = "📝 Subscriber အချက်အလက်ပြင်ဆင်ရန်";
       document.getElementById('btnCancelEdit').classList.remove('hidden');
     }
 
     function cancelEdit() {
-      document.getElementById('editIndex').value = ""; document.getElementById('custName').value = ""; document.getElementById('custPhone').value = "";
-      document.getElementById('custMonthly').value = "0"; document.getElementById('custInstall').value = "0"; document.getElementById('custExpiry').value = "";
+      document.getElementById('editIndex').value = ""; 
+      document.getElementById('custName').value = ""; 
+      document.getElementById('custPhone').value = "";
+      document.getElementById('custPlan').value = "15Mbps";
+      document.getElementById('custMonthly').value = ""; 
+      document.getElementById('custInstall').value = ""; 
+      document.getElementById('custExpiry').value = "";
       document.getElementById('formTitle').innerText = "👤 Subscriber စာရင်းသွင်း/ပြင်ဆင်ရန်";
       document.getElementById('btnCancelEdit').classList.add('hidden');
     }
@@ -518,12 +533,15 @@
     }
 
     function saveSale() {
-      const item = document.getElementById('saleItem').value; const price = parseFloat(document.getElementById('salePrice').value) || 0;
-      const qty = parseInt(document.getElementById('saleQty').value) || 1; const date = document.getElementById('saleDate').value;
+      const item = document.getElementById('saleItem').value; 
+      const price = parseFloat(document.getElementById('salePrice').value) || 0;
+      const qty = parseInt(document.getElementById('saleQty').value) || 1; 
+      const date = document.getElementById('saleDate').value;
       if(!item || !date) { alert("အချက်အလက်များကို ဖြည့်စွက်ပါဗျာ။"); return; }
       sales.push({ date, item, total: price * qty, rate: price, qty });
       localStorage.setItem('isp_sales', JSON.stringify(sales));
-      document.getElementById('saleItem').value = ''; document.getElementById('salePrice').value = '0';
+      document.getElementById('saleItem').value = ''; 
+      document.getElementById('salePrice').value = '';
       calculateFinancials(); renderSales(); pushDatabaseToCloud();
     }
 
@@ -540,12 +558,15 @@
     }
 
     function saveExpense() {
-      const title = document.getElementById('expTitle').value; const price = parseFloat(document.getElementById('expPrice').value) || 0;
-      const qty = parseInt(document.getElementById('expQty').value) || 1; const date = document.getElementById('expDate').value;
+      const title = document.getElementById('expTitle').value; 
+      const price = parseFloat(document.getElementById('expPrice').value) || 0;
+      const qty = parseInt(document.getElementById('expQty').value) || 1; 
+      const date = document.getElementById('expDate').value;
       if(!title || !date) { alert("အချက်အလက်များကို ဖြည့်စွက်ပါဗျာ။"); return; }
       expenses.push({ date, title, total: price * qty, rate: price, qty });
       localStorage.setItem('isp_expenses', JSON.stringify(expenses));
       document.getElementById('expTitle').value = '';
+      document.getElementById('expPrice').value = '';
       calculateFinancials(); renderExpenses(); pushDatabaseToCloud();
     }
 
@@ -572,7 +593,6 @@
       localStorage.setItem('isp_subscribers', JSON.stringify(subscribers));
       localStorage.setItem('isp_renew_history', JSON.stringify(renewHistory));
       checkExpiryNotifications(); calculateFinancials(); renderSubscribers();
-      // Pipe push trigger
       pushDatabaseToCloud();
     }
   </script>
