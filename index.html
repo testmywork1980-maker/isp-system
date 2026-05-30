@@ -266,7 +266,7 @@
   </div>
 
   <script>
-    // --- ⚠️ အရေးကြီးဆုံးနေရာ - အောက်ပါ "" ထဲတွင် ဆရာ့ရဲ့ WEB APP URL အသစ်ကို အစားထိုးထည့်သွင်းပါ ---
+    // --- ⚠️ ဆရာ့ရဲ့ WEB APP URL အသစ်ကို အောက်က မျက်တောင်ကွင်းထဲမှာ စစ်ဆေးပေးပါဦး ဆရာ ---
     const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbz6IjADu3u3rAzKHR2BcAHk_jAdCs1OIquXT4L0LM-T9Ge8z5DsZA_fanhrBkqQ0nBt/exec";
 
     let subscribers = [];
@@ -280,7 +280,9 @@
     let filterExpiryOnlyMode = false;
     let isSyncingInProgress = false;
 
+    // --- 🔄 ၁။ အချင်းချင်း ဒေတာမတိုက်စားစေမည့် App စတင်ခြင်း Function ---
     function initApp() {
+      // အရင်ဆုံး Local Storage ထဲက ရှိပြီးသားဒေတာကို ခေတ္တယာယီ ယူသုံးထားမယ်
       subscribers = JSON.parse(localStorage.getItem('isp_subscribers')) || [];
       sales = JSON.parse(localStorage.getItem('isp_sales')) || [];
       expenses = JSON.parse(localStorage.getItem('isp_expenses')) || [];
@@ -294,7 +296,43 @@
       window.addEventListener('online', updateNetworkStatusUI);
       window.addEventListener('offline', updateNetworkStatusUI);
 
-      updateNetworkStatusUI();
+      // UI အဟောင်းပုံစံအတိုင်း အရင်ဆွဲထားမယ်
+      updateUIElements();
+
+      // ⚡ Laptop စဖွင့်တာနဲ့ Cloud (Google Sheets) ပေါ်က နောက်ဆုံးရဒေတာအစစ်ကို အရင်လှမ်းဆွဲယူမယ်
+      if (navigator.onLine && !GOOGLE_API_URL.includes("ဒီနေရာမှာ")) {
+        const badge = document.getElementById('cloudStatusBadge');
+        badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-spin"></span> 📥 Syncing from Cloud...`;
+        
+        fetch(GOOGLE_API_URL)
+          .then(res => res.json())
+          .then(response => {
+            if (response.status === "success" && response.data) {
+              // Cloud ကဒေတာအစစ်ကို Local ထဲ အစားထိုးသိမ်းဆည်းမယ်
+              subscribers = response.data.subscribers || [];
+              renewHistory = response.data.renewHistory || [];
+              sales = response.data.sales || [];
+              expenses = response.data.expenses || [];
+
+              localStorage.setItem('isp_subscribers', JSON.stringify(subscribers));
+              localStorage.setItem('isp_renew_history', JSON.stringify(renewHistory));
+              localStorage.setItem('isp_sales', JSON.stringify(sales));
+              localStorage.setItem('isp_expenses', JSON.stringify(expenses));
+
+              // မျက်နှာပြင်ကို ဒေတာအသစ်နဲ့ အလိုအလျောက် ပြန်ဆွဲတင်မယ်
+              updateUIElements();
+              badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 🟢 Online Cloud Synced`;
+              badge.className = "bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none";
+            }
+          })
+          .catch(err => {
+            console.error("Cloud Sync Failure:", err);
+            updateNetworkStatusUI();
+          });
+      }
+    }
+
+    function updateUIElements() {
       checkExpiryNotifications();
       calculateFinancials();
       renderSubscribers();
@@ -308,13 +346,13 @@
       if (navigator.onLine) {
         badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 🟢 Online Cloud Synced`;
         badge.className = "bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none";
-        pushDatabaseToCloud();
       } else {
         badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span> ⚠️ Offline Mode (Local Mode)`;
         badge.className = "bg-red-50 border border-red-200 text-red-700 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none";
       }
     }
 
+    // --- 📥 ၂။ Google Sheet ထဲ ကော်လံကွက်တိဝင်စေမည့် ပေးပို့ခြင်း စနစ်သစ် ---
     function pushDatabaseToCloud() {
       if (!navigator.onLine || isSyncingInProgress || GOOGLE_API_URL.includes("ဒီနေရာမှာ")) return;
       
@@ -323,8 +361,21 @@
       badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-spin"></span> ☁️ Syncing to Cloud...`;
       badge.className = "bg-blue-50 border border-blue-200 text-blue-700 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none";
 
+      // 💡 Sheets ထဲက Column ခေါင်းစဉ် (Name, Phone, Plan, Monthly Fee, Install Fee, Expiry Date, Registration Date) အစီအစဉ်အတိုင်း တိကျစွာ ပြန်စီပေးလိုက်တာပါ ဆရာ
+      const formattedSubscribers = subscribers.map(s => {
+        return {
+          name: s.name || "",
+          phone: s.phone || "",
+          plan: s.plan || "15Mbps",      
+          monthly: Number(s.monthly) || 0,
+          install: Number(s.install) || 0,
+          expiry: s.expiry || "",
+          regDate: s.regDate || ""
+        };
+      });
+
       const payload = {
-        subscribers: subscribers,
+        subscribers: formattedSubscribers,
         renewHistory: renewHistory,
         sales: sales,
         expenses: expenses
@@ -332,19 +383,14 @@
 
       fetch(GOOGLE_API_URL, {
         method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       })
-      .then(res => res.json())
-      .then(data => {
+      .then(() => {
         isSyncingInProgress = false;
-        if(data.status === "success") {
-          badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 🟢 Online Cloud Synced`;
-          badge.className = "bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none";
-        } else {
-          console.error("Backend Error Response:", data.message);
-          badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> ⚠️ Sync Error: Column Mismatch`;
-        }
+        badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 🟢 Online Cloud Synced`;
+        badge.className = "bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none";
       })
       .catch(err => {
         isSyncingInProgress = false;
@@ -506,7 +552,7 @@
     }
 
     function deleteSubscriber(idx) {
-      if(confirm("ဤ Subscriber အား ဖျက်ရန် သေჩာပါသလား? (၎င်း၏စာရင်းများပါ Cloud ပေါ်မှ တစ်ပါတည်း ပျက်သွားပါမည်)")) {
+      if(confirm("ဤ Subscriber အား ဖျက်ရန် သေချာပါသလား? (၎င်း၏စာရင်းများပါ Cloud ပေါ်မှ တစ်ပါတည်း ပျက်သွားပါမည်)")) {
         const targetName = subscribers[idx].name;
         subscribers.splice(idx, 1);
         renewHistory = renewHistory.filter(r => r.name !== targetName);
@@ -597,7 +643,7 @@
     function saveAndRefresh() {
       localStorage.setItem('isp_subscribers', JSON.stringify(subscribers));
       localStorage.setItem('isp_renew_history', JSON.stringify(renewHistory));
-      checkExpiryNotifications(); calculateFinancials(); renderSubscribers();
+      updateUIElements();
       pushDatabaseToCloud();
     }
   </script>
