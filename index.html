@@ -26,8 +26,13 @@
           <button onclick="switchTab('renew-history')" id="btn-renew-history" class="nav-btn text-gray-400 hover:text-white px-4 py-2 rounded-lg font-semibold text-sm transition cursor-pointer">Renew History</button>
         </div>
         
-        <div id="cloudStatusBadge" class="bg-slate-800 border border-slate-700 text-slate-400 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none">
-          <span class="w-2.5 h-2.5 rounded-full bg-slate-500 animate-pulse"></span> Connecting...
+        <div class="flex items-center gap-2">
+          <button onclick="pullDatabaseFromCloud()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-xl text-xs shadow cursor-pointer transition flex items-center gap-1">
+            🔄 Refresh Data
+          </button>
+          <div id="cloudStatusBadge" class="bg-slate-800 border border-slate-700 text-slate-400 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none">
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-500 animate-pulse"></span> Connecting...
+          </div>
         </div>
       </div>
     </div>
@@ -108,11 +113,11 @@
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-bold text-gray-500 uppercase mb-1">လစဉ်ကြေး</label>
-              <input type="number" id="custMonthly" placeholder="" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <input type="number" id="custMonthly" placeholder="ဥပမာ - 50000" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
             </div>
             <div>
               <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Install Fee</label>
-              <input type="number" id="custInstall" placeholder="" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <input type="number" id="custInstall" placeholder="ဥပမာ - 30000" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
             </div>
           </div>
           <div>
@@ -129,7 +134,7 @@
       <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
         <div class="p-4 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3">
           <div class="flex items-center gap-2">
-            <h3 class="font-bold text-gray-800 text-base">📋 Subscriber List</h3>
+            <h3 class="font-bold text-gray-800 text-base">📋 Subscriber စောင့်ကြည့်ဘုတ်</h3>
             <button onclick="clearTableFilters()" id="btnClearFilter" class="hidden text-xs bg-red-100 text-red-700 px-2 py-1 rounded-lg font-bold hover:bg-red-200 transition cursor-pointer">❌ Reset Filter</button>
           </div>
           <input type="text" id="searchBox" oninput="renderSubscribers()" placeholder="အမည်၊ ဖုန်း သို့မဟုတ် Plan ဖြင့်ရှာရန်..." class="w-full sm:w-64 p-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -281,6 +286,7 @@
     let isSyncingInProgress = false;
 
     function initApp() {
+      // First load local storage cache dynamically
       subscribers = JSON.parse(localStorage.getItem('isp_subscribers')) || [];
       sales = JSON.parse(localStorage.getItem('isp_sales')) || [];
       expenses = JSON.parse(localStorage.getItem('isp_expenses')) || [];
@@ -295,20 +301,62 @@
       window.addEventListener('offline', updateNetworkStatusUI);
 
       updateNetworkStatusUI();
-      checkExpiryNotifications();
-      calculateFinancials();
+      // Auto pull fresh central ecosystem sheets directly when app initialises
+      pullDatabaseFromCloud();
+    }
+
+    // --- DOWNLOAD/PULL CORE DATA ENGINE ---
+    function pullDatabaseFromCloud() {
+      if (!navigator.onLine) return;
+
+      const badge = document.getElementById('cloudStatusBadge');
+      badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-spin"></span> 📥 Loading Cloud Data...`;
+      badge.className = "bg-amber-50 border border-amber-200 text-amber-700 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none";
+
+      fetch(GOOGLE_API_URL)
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.status === "success" && resData.data) {
+          const db = resData.data;
+          subscribers = db.subscribers || [];
+          renewHistory = db.renewHistory || [];
+          sales = db.sales || [];
+          expenses = db.expenses || [];
+
+          // Override update local cache files
+          localStorage.setItem('isp_subscribers', JSON.stringify(subscribers));
+          localStorage.setItem('isp_renew_history', JSON.stringify(renewHistory));
+          localStorage.setItem('isp_sales', JSON.stringify(sales));
+          localStorage.setItem('isp_expenses', JSON.stringify(expenses));
+
+          refreshAllTablesUI();
+          badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 🟢 Online Cloud Synced`;
+          badge.className = "bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none";
+        }
+      })
+      .catch(err => {
+        console.error("Cloud Pull Error Architecture Filter:", err);
+        updateNetworkStatusUI();
+        refreshAllTablesUI();
+      });
+    }
+
+    function refreshAllTablesUI() {
+      checkExpiryNotifications(); 
+      calculateFinancials(); 
       renderSubscribers();
-      renderSales();
-      renderExpenses();
+      renderSales(); 
+      renderExpenses(); 
       renderRenewHistory();
     }
 
     function updateNetworkStatusUI() {
       const badge = document.getElementById('cloudStatusBadge');
       if (navigator.onLine) {
-        badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 🟢 Online Cloud Synced`;
-        badge.className = "bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none";
-        pushDatabaseToCloud();
+        if(!isSyncingInProgress) {
+          badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 🟢 Online Cloud Synced`;
+          badge.className = "bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none";
+        }
       } else {
         badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span> ⚠️ Offline Mode (Local Mode)`;
         badge.className = "bg-red-50 border border-red-200 text-red-700 font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 select-none";
@@ -592,7 +640,7 @@
     function saveAndRefresh() {
       localStorage.setItem('isp_subscribers', JSON.stringify(subscribers));
       localStorage.setItem('isp_renew_history', JSON.stringify(renewHistory));
-      checkExpiryNotifications(); calculateFinancials(); renderSubscribers();
+      refreshAllTablesUI();
       pushDatabaseToCloud();
     }
   </script>
